@@ -60,9 +60,9 @@ resource "random_integer" "ip_prefix" {
 }
 
 resource "libvirt_pool" "demo-pool" {
-  name = "${local.profile}-pool-${random_id.base.hex}"
+  name = "${random_id.base.hex}-${local.profile}-pool"
   type = "dir"
-  path = "${local.storage-path}/${local.profile}-${random_id.base.hex}"
+  path = "${local.storage-path}/${random_id.base.hex}-${local.profile}"
 }
 
 resource "libvirt_volume" "ww4-host-base-vol" {
@@ -73,7 +73,7 @@ resource "libvirt_volume" "ww4-host-base-vol" {
 }
 
 resource "libvirt_volume" "ww4-host-vol" {
-  name   = "host-${random_id.base.hex}.qcow2"
+  name   = "${random_id.base.hex}-host.qcow2"
   pool   = libvirt_pool.demo-pool.name
   base_volume_id = libvirt_volume.ww4-host-base-vol.id
   format = "qcow2"
@@ -81,7 +81,7 @@ resource "libvirt_volume" "ww4-host-vol" {
 }
 
 resource "libvirt_volume" "ww4-node-vol" {
-  name   = "node-${count.index}-${random_id.base.hex}.qcow2"
+  name   = "${random_id.base.hex}-node-${count.index}.qcow2"
   pool   = libvirt_pool.demo-pool.name
   format = "qcow2"
   size = 40399536128
@@ -89,7 +89,7 @@ resource "libvirt_volume" "ww4-node-vol" {
 }
 
 resource "libvirt_network" "ww4-net" {
-  name      = "${local.profile}-net-${random_id.base.hex}"
+  name      = "${random_id.base.hex}-${local.profile}-net"
   addresses = ["${local.network}/${local.network_size}"]
   dhcp {
     enabled = false
@@ -145,7 +145,7 @@ resource "libvirt_cloudinit_disk" "hostinit" {
 
 
 resource "libvirt_domain" "ww4-host" {
-  name   = "ww4-host-${random_id.base.hex}"
+  name   = "${random_id.base.hex}-ww4-host"
   cloudinit = libvirt_cloudinit_disk.hostinit.id
   memory = "8192"
   vcpu   = 8
@@ -188,7 +188,7 @@ resource "libvirt_domain" "ww4-host" {
 resource "libvirt_domain" "ww4-nodes" {
   running = false
   count  = var.nr-nodes
-  name   = format("n%02s-${random_id.base.hex}",count.index + 1)
+  name   = format("${random_id.base.hex}-n%02s",count.index + 1)
   memory = "4096"
   vcpu  = 4
   cpu {
