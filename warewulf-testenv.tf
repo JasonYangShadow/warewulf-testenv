@@ -7,11 +7,11 @@ terraform {
 }
 
 variable "distribution" {
-  default = "leap"
+  default = "local-dnf"
 }
 
 variable "nr-nodes" {
-  default = 4
+  default = 1
 }
 
 variable "packages" {
@@ -28,20 +28,10 @@ locals {
   authorized   = file("~/.ssh/authorized_keys")
 
   distros = {
-      "leap" = {
-      "image": "https://download.opensuse.org/distribution/openSUSE-stable/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-Cloud.qcow2"
-      "package_manager": "zypper install -y --allow-unsigned-rpm"
-      "warewulf_package": "warewulf4"
-      }
-      "tw" = {
-      "image": "http://download.opensuse.org/tumbleweed/appliances/openSUSE-Tumbleweed-Minimal-VM.x86_64-Cloud.qcow2"
-      "package_manager": "zypper install -y --allow-unsigned-rpm"
-      "warewulf_package": "warewulf4"
-      }
-      "local-zypp" = {
-        "image": "local.qcow2"
-        "package_manager":  "zypper install -y --allow-unsigned-rpm"
-        "warewulf_package": "https://github.com/hpcng/warewulf/releases/download/v4.4.1/warewulf-4.4.1-1.git_d6f6fed.suse.lp153.x86_64.rpm"
+      "local-dnf" = {
+	"image": "Rocky-9-GenericCloud-Base.latest.x86_64.qcow2"
+	"package_manager": "dnf install -y"
+      	"warewulf_package": "vim"
       }
   }
 }
@@ -77,14 +67,12 @@ resource "libvirt_volume" "ww4-host-vol" {
   pool   = libvirt_pool.demo-pool.name
   base_volume_id = libvirt_volume.ww4-host-base-vol.id
   format = "qcow2"
-  size = 40399536128
 }
 
 resource "libvirt_volume" "ww4-node-vol" {
   name   = "${random_id.base.hex}-node-${count.index}.qcow2"
   pool   = libvirt_pool.demo-pool.name
   format = "qcow2"
-  size = 40399536128
   count  = var.nr-nodes
 }
 
@@ -147,8 +135,8 @@ resource "libvirt_cloudinit_disk" "hostinit" {
 resource "libvirt_domain" "ww4-host" {
   name   = "${random_id.base.hex}-ww4-host"
   cloudinit = libvirt_cloudinit_disk.hostinit.id
-  memory = "8192"
-  vcpu   = 8
+  memory = "2048"
+  vcpu   = 1 # more than 1 core will possiblely get stuck in the edd stage.
   cpu {
     mode = "host-passthrough"
   }
@@ -190,7 +178,7 @@ resource "libvirt_domain" "ww4-nodes" {
   count  = var.nr-nodes
   name   = format("${random_id.base.hex}-n%02s",count.index + 1)
   memory = "4096"
-  vcpu  = 4
+  vcpu  = 1
   cpu {
     mode = "host-passthrough"
   }
@@ -216,7 +204,23 @@ resource "libvirt_domain" "ww4-nodes" {
     listen_type = "address"
     autoport    = "true"
   }
-  
+  console {
+    type        = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
+
+  console {
+    type        = "pty"
+    target_type = "virtio"
+    target_port = "1"
+  }
+
+  # firmware = "/usr/share/ovmf/OVMF.fd"
+  # nvram {
+  #   file     = "/var/tmp/efi${count.index}_EFIVARS.fd"
+  #   template = "/usr/share/ovmf/OVMF.fd"
+  # }
 }
 
 output "VM_names" {

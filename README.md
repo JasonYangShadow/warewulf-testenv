@@ -47,9 +47,12 @@ After the test you have to remove the virtual machines with
 terraform destroy
 ```
 
+### Img Download
+`http://ftp.halifax.rwth-aachen.de/rockylinux/9.3/images/x86_64/Rocky-9-GenericCloud-Base.latest.x86_64.qcow2`
+
 ### Configure number of nodes
 ```
-terraform apply -var="nr_nodes=2"
+terraform apply -var="nr-nodes=2"
 ```
 
 ### Don't install warewulf
@@ -60,3 +63,28 @@ terraform apply -var="packages=fortune"
 ## known errors
 The key in `~/.ssh/authorized_keys` are copied over to `ww4-host`. If there is
 more than one key, cloud-init fails.
+
+## Attention
+If wanting compute nodes to run via EFI.
+Following firmware should be added to `ww4-nodes` in `warewulf-testenv.tf`
+
+For openSuse:
+
+```
+  machine = "pc-q35-6.1"
+  firmware = "/usr/share/qemu/ovmf-x86_64-smm-ms-code.bin"
+  nvram {
+    file     = "/var/tmp/efi${count.index}_EFIVARS.fd"
+    template = "/usr/share/qemu/ovmf-x86_64-smm-ms-vars.bin"
+  }
+```
+
+For ubuntu:
+```
+firmware = "/usr/share/ovmf/OVMF.fd"                                                                                                                                                                                                         
+  nvram {                                                                                                                                                                                                                                      
+    file     = "/var/tmp/efi${count.index}_EFIVARS.fd"                                                                                                                                                                                         
+    template = "/usr/share/ovmf/OVMF.fd"                                                                                                                                                                                                       
+  } 
+```
+
